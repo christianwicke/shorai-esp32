@@ -264,6 +264,7 @@ class MQTT_base:
                 raise OSError(-1)  # Bad CONNACK e.g. authentication fail. -> changed to reboot device
                 #machine.reset()
         except:
+            self.dprint('Connecting issue -> reboot initiated.')  # Connection issue
             machine.reset()
 
     async def _ping(self):
