@@ -1,5 +1,5 @@
 # mqtt_as.py Asynchronous version of umqtt.robust
-# (C) Copyright Peter Hinch 2017-2020.
+# (C) Copyright Peter Hinch 2017-2021.
 # Released under the MIT licence.
 
 # Pyboard D support added
@@ -25,7 +25,7 @@ import network
 gc.collect()
 from sys import platform
 
-VERSION = (0, 6, 0)
+VERSION = (0, 6, 1)
 
 # Default short delay for good SynCom throughput (avoid sleep(0) with SynCom).
 _DEFAULT_MS = const(20)
@@ -311,11 +311,15 @@ class MQTT_base:
         except OSError:
             pass
         self._has_connected = False
-        self.close()
+        self._close()
 
-    def close(self):
+    def _close(self):
         if self._sock is not None:
             self._sock.close()
+
+    def close(self):  # API. See https://github.com/peterhinch/micropython-mqtt/issues/60
+        self._close()
+        self._sta_if.active(False)
 
     async def _await_pid(self, pid):
         t = ticks_ms()
@@ -518,24 +522,23 @@ class MQTTClient(MQTT_base):
         try:
             await self._connect(clean)
         except Exception:
-            self.close()
+            self._close()
             raise
         self.rcv_pids.clear()
         # If we get here without error broker/LAN must be up.
         self._isconnected = True
         self._in_connect = False  # Low level code can now check connectivity.
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._wifi_handler(True))  # User handler.
+        asyncio.create_task(self._wifi_handler(True))  # User handler.
         if not self._has_connected:
             self._has_connected = True  # Use normal clean flag on reconnect.
-            loop.create_task(
+            asyncio.create_task(
                 self._keep_connected())  # Runs forever unless user issues .disconnect()
 
-        loop.create_task(self._handle_msg())  # Tasks quit on connection fail.
-        loop.create_task(self._keep_alive())
+        asyncio.create_task(self._handle_msg())  # Tasks quit on connection fail.
+        asyncio.create_task(self._keep_alive())
         if self.DEBUG:
-            loop.create_task(self._memory())
-        loop.create_task(self._connect_handler(self))  # User handler.
+            asyncio.create_task(self._memory())
+        asyncio.create_task(self._connect_handler(self))  # User handler.
 
     # Launched by .connect(). Runs until connectivity fails. Checks for and
     # handles incoming messages.
@@ -558,12 +561,11 @@ class MQTTClient(MQTT_base):
             if pings_due >= 4:
                 self.dprint('Reconnect: broker fail.')
                 break
-            elif pings_due >= 1:
-                try:
-                    await self._ping()
-                except OSError:
-                    break
-            await asyncio.sleep(1)
+            await asyncio.sleep_ms(self._ping_interval)
+            try:
+                await self._ping()
+            except OSError:
+                break
         self._reconnect()  # Broker or WiFi fail.
 
     # DEBUG: show RAM messages.
@@ -587,9 +589,8 @@ class MQTTClient(MQTT_base):
     def _reconnect(self):  # Schedule a reconnection if not underway.
         if self._isconnected:
             self._isconnected = False
-            self.close()
-            loop = asyncio.get_event_loop()
-            loop.create_task(self._wifi_handler(False))  # User handler.
+            self._close()
+            asyncio.create_task(self._wifi_handler(False))  # User handler.
 
     # Await broker connection.
     async def _connection(self):
@@ -620,7 +621,7 @@ class MQTTClient(MQTT_base):
                 except OSError as e:
                     self.dprint('Error in reconnect.', e)
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
-                    self.close()  # Disconnect and try again.
+                    self._close()  # Disconnect and try again.
                     self._in_connect = False
                     self._isconnected = False
         self.dprint('Disconnected, exited _keep_connected')
