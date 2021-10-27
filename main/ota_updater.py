@@ -46,7 +46,7 @@ class OTAUpdater:
                 self.apply_pending_updates_if_available()
             else:
                 print('Create Next-Folder.')
-                mkdir(self.modulepath('next'))
+                os.mkdir(self.modulepath('next'))
                 with open(self.modulepath('next/.version_on_reboot'), 'w') as versionfile:
                     versionfile.write(latest_version)
                     versionfile.close()
