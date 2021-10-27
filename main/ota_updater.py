@@ -2,7 +2,6 @@ import usocket
 import os
 import gc
 import machine
-import shutil
 
 header = {
     'User-Agent': 'My User Agent 1.0',
