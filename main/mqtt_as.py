@@ -6,6 +6,7 @@
 # Various improvements contributed by Kevin Köck.
 
 import gc
+import machine
 import usocket as socket
 import ustruct as struct
 
@@ -259,7 +260,8 @@ class MQTT_base:
         resp = await self._as_read(4)
         self.dprint('Connected to broker.')  # Got CONNACK
         if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
-            raise OSError(-1)  # Bad CONNACK e.g. authentication fail.
+            # raise OSError(-1)  # Bad CONNACK e.g. authentication fail. -> changed to reboot device
+            machine.reset()
 
     async def _ping(self):
         async with self.lock:
