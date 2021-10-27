@@ -221,46 +221,49 @@ class MQTT_base:
                 raise
         await asyncio.sleep_ms(_DEFAULT_MS)
         self.dprint('Connecting to broker.')
-        if self._ssl:
-            import ussl
-            self._sock = ussl.wrap_socket(self._sock, **self._ssl_params)
-        premsg = bytearray(b"\x10\0\0\0\0\0")
-        msg = bytearray(b"\x04MQTT\x04\0\0\0")  # Protocol 3.1.1
+        try:
+            if self._ssl:
+                import ussl
+                self._sock = ussl.wrap_socket(self._sock, **self._ssl_params)
+            premsg = bytearray(b"\x10\0\0\0\0\0")
+            msg = bytearray(b"\x04MQTT\x04\0\0\0")  # Protocol 3.1.1
 
-        sz = 10 + 2 + len(self._client_id)
-        msg[6] = clean << 1
-        if self._user:
-            sz += 2 + len(self._user) + 2 + len(self._pswd)
-            msg[6] |= 0xC0
-        if self._keepalive:
-            msg[7] |= self._keepalive >> 8
-            msg[8] |= self._keepalive & 0x00FF
-        if self._lw_topic:
-            sz += 2 + len(self._lw_topic) + 2 + len(self._lw_msg)
-            msg[6] |= 0x4 | (self._lw_qos & 0x1) << 3 | (self._lw_qos & 0x2) << 3
-            msg[6] |= self._lw_retain << 5
+            sz = 10 + 2 + len(self._client_id)
+            msg[6] = clean << 1
+            if self._user:
+                sz += 2 + len(self._user) + 2 + len(self._pswd)
+                msg[6] |= 0xC0
+            if self._keepalive:
+                msg[7] |= self._keepalive >> 8
+                msg[8] |= self._keepalive & 0x00FF
+            if self._lw_topic:
+                sz += 2 + len(self._lw_topic) + 2 + len(self._lw_msg)
+                msg[6] |= 0x4 | (self._lw_qos & 0x1) << 3 | (self._lw_qos & 0x2) << 3
+                msg[6] |= self._lw_retain << 5
 
-        i = 1
-        while sz > 0x7f:
-            premsg[i] = (sz & 0x7f) | 0x80
-            sz >>= 7
-            i += 1
-        premsg[i] = sz
-        await self._as_write(premsg, i + 2)
-        await self._as_write(msg)
-        await self._send_str(self._client_id)
-        if self._lw_topic:
-            await self._send_str(self._lw_topic)
-            await self._send_str(self._lw_msg)
-        if self._user:
-            await self._send_str(self._user)
-            await self._send_str(self._pswd)
-        # Await CONNACK
-        # read causes ECONNABORTED if broker is out; triggers a reconnect.
-        resp = await self._as_read(4)
-        self.dprint('Connected to broker.')  # Got CONNACK
-        if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
-            # raise OSError(-1)  # Bad CONNACK e.g. authentication fail. -> changed to reboot device
+            i = 1
+            while sz > 0x7f:
+                premsg[i] = (sz & 0x7f) | 0x80
+                sz >>= 7
+                i += 1
+            premsg[i] = sz
+            await self._as_write(premsg, i + 2)
+            await self._as_write(msg)
+            await self._send_str(self._client_id)
+            if self._lw_topic:
+                await self._send_str(self._lw_topic)
+                await self._send_str(self._lw_msg)
+            if self._user:
+                await self._send_str(self._user)
+                await self._send_str(self._pswd)
+            # Await CONNACK
+            # read causes ECONNABORTED if broker is out; triggers a reconnect.
+            resp = await self._as_read(4)
+            self.dprint('Connected to broker.')  # Got CONNACK
+            if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
+                raise OSError(-1)  # Bad CONNACK e.g. authentication fail. -> changed to reboot device
+                #machine.reset()
+        except:
             machine.reset()
 
     async def _ping(self):
