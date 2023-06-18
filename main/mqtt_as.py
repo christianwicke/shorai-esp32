@@ -288,8 +288,10 @@ class MQTT_base:
             if len(res) == length:
                 return True  # DNS response size OK
         except OSError:  # Timeout on read: no connectivity.
+            machine.reset()
             return False
         finally:
+            machine.reset()
             s.close()
         return False
 
@@ -302,6 +304,7 @@ class MQTT_base:
         try:
             await self._ping()
         except OSError:
+            machine.reset()
             return False
         t = ticks_ms()
         while not self._timeout(t):
@@ -315,6 +318,7 @@ class MQTT_base:
             async with self.lock:
                 self._sock.write(b"\xe0\0")
         except OSError:
+            machine.reset()
             pass
         self._has_connected = False
         self._close()
