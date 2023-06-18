@@ -457,6 +457,14 @@ class MQTT_base:
 
 # MQTTClient class. Handles issues relating to connectivity.
 
+async def _reconnect(self):
+    self._isconnected = False
+    await self.disconnect()
+    await asyncio.sleep(120)  # wait for 2 minutes
+    # reboot the device
+    import machine
+    machine.reset()
+
 class MQTTClient(MQTT_base):
     def __init__(self, config):
         super().__init__(config)
@@ -566,11 +574,13 @@ class MQTTClient(MQTT_base):
             pings_due = ticks_diff(ticks_ms(), self.last_rx) // self._ping_interval
             if pings_due >= 4:
                 self.dprint('Reconnect: broker fail.')
+                await self._reconnect()  # Call _reconnect() function instead of breaking out of the loop.
                 break
             await asyncio.sleep_ms(self._ping_interval)
             try:
                 await self._ping()
             except OSError:
+                await self._reconnect()  # Call _reconnect() function instead of breaking out of the loop.
                 break
         self._reconnect()  # Broker or WiFi fail.
 
