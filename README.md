@@ -1,30 +1,22 @@
-<a href="https://www.buymeacoffee.com/toremick2" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
-
 # shorai-esp32
-This will work for Toshiba Shorai and Seiya
+
+This is a fork of https://github.com/toremick/shorai-esp32/ . 
+It provides mqtt control for Toshiba Shorai and Seiya air conditioner.
+This fork has a few modifications since the original didn't work for me.
 
 This works great for me, but is at your own risk!
 
-Hit me up on (https://discord.gg/wYYFawvqfr) if there is anything
-i can help with
-
-
 ## Software install
-* Download firmware here: https://github.com/toremick/shorai-esp32/blob/main/firmware/firmware.bin
-* Install esptool.py on your pc. (https://cyberblogspot.com/how-to-install-esptool-on-windows-10/)  
-* put firmware.bin i c:\  
-* open command prompt and run following from c:\  (edit COM3 to reflect your serial port number)   
- * `esptool.py --chip esp32 --port COM3 --baud 460800 write_flash -z 0x1000 firmware.bin`
-
-* When installed, you need to use thonny (www.thonny.org) or similiar to connect to the esp32.  
-* at the repl run the following commands:  
- `import installation`  
- `installation.install_now('YOUR-SSID', 'YOUR-WIFI-PASSWD')`  
-* this will install the files needed on your esp32 in /main folder
-* Refresh the file content  
-![Refresh thonny](images/refresh-thonny.png?raw=true "Refresh thonny")  
-* edit config.py to set up your network etc.
-
+* Install thonny (www.thonny.org) on your computer.
+* Flash MicroPython on your esp32 using these instructions: https://randomnerdtutorials.com/getting-started-thonny-micropython-python-ide-esp32-esp8266/ , section "Flashing MicroPython Firmware using Thonny IDE". (I used MicroPython v1.23.0.)
+  ![thonny options](images/thonny-options-interpreter.png?raw=true "thonny options")  
+  ![thonny flash options](images/thonny-flash-options.png?raw=true "thonny flash options")
+* Open this project in thonny.
+* copy config_example.py to config.py and insert your configuration there.
+* Click right on the folder main and choose "Upload to /"
+  ![upload main folder](images/upload_main.png?raw=true "upload main folder")
+* Upload config.py and boot.py the same way. (thonny asks you whether you want to overwrite boot.py. Accept with OK.)
+* Finally click on the red STOP-icon to reset the esp32.
 
 ### PCB Schematic
 ![PCB Schematic](images/schematic.PNG?raw=true "PCB Schematic")
