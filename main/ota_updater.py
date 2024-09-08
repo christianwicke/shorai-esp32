@@ -196,7 +196,7 @@ class HttpClient:
         if proto == 'http:':
             port = 80
         elif proto == 'https:':
-            import ussl
+            import ssl
             port = 443
         else:
             raise ValueError('Unsupported protocol: ' + proto)
