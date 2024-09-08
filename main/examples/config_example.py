@@ -9,6 +9,9 @@ config['wifi_pw']= 'YOUR-WIFI-PASSWD'
 # MQTT settings
 config['server'] = '192.168.2.30'  # Change to suit
 config['maintopic'] = 'heatpump'
+#config['port'] = 2883
+#config['ssl'] = True
+
 # uncomment next two lines and set credentials if your mqtt broker uses authentication.
 # config['user'] = 'mqtt-username'
 # config['password'] = 'mqtt-password'
@@ -16,4 +19,4 @@ config['maintopic'] = 'heatpump'
 # repo
 # REPLACE THE REPO URL WITH YOUR OWN!!
 # OR ELSE YOU WILL RECIEVE UPDATES FROM THIS REPO AT A REBOOT
-config['your_repo'] = 'https://github.com/toremick/shorai-esp32'
+config['your_repo'] = 'https://github.com/christianwicke/shorai-esp32'

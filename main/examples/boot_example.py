@@ -1,3 +1,5 @@
+# This file is executed on every boot (including wake-boot from deepsleep)
+
 from main.ota_updater import OTAUpdater
 from config import config
 
