@@ -41,7 +41,7 @@ class OTAUpdater:
         print('\tLatest version: ', latest_version)
         if latest_version > current_version:
             print('New version available, will download and install on next reboot')
-            os.mkdir(self.modulepath('next'))
+            self.mkdir_f(self.modulepath('next'))
             with open(self.modulepath('next/.version_on_reboot'), 'w') as versionfile:
                 versionfile.write(latest_version)
                 versionfile.close()
@@ -88,7 +88,7 @@ class OTAUpdater:
         print('\tLatest version: ', latest_version)
         if latest_version > current_version:
             print('Updating...')
-            os.mkdir(self.modulepath('next'))
+            self.mkdir_f(self.modulepath('next'))
             self.download_all_files(self.github_repo + '/contents/' + self.main_dir, latest_version)
             with open(self.modulepath('next/.version'), 'w') as versionfile:
                 versionfile.write(latest_version)
@@ -151,6 +151,17 @@ class OTAUpdater:
 
     def modulepath(self, path):
         return self.module + '/' + path if self.module else path
+    
+    def mkdir_f(self, path):
+        try:
+            os.mkdir(path)
+        except OSError as exc:  # Python ≥ 2.5
+            if exc.errno == errno.EEXIST:
+                pass
+            # possibly handle other errno cases here, otherwise finally:
+            else:
+                raise
+
 
 
 class Response:
