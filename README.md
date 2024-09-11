@@ -9,12 +9,12 @@ This works great for me, but is at your own risk!
 ## Software install
 * Install thonny (www.thonny.org) on your computer.
 * Flash MicroPython on your esp32 using these instructions: https://randomnerdtutorials.com/getting-started-thonny-micropython-python-ide-esp32-esp8266/ , section "Flashing MicroPython Firmware using Thonny IDE". (I used MicroPython v1.23.0.)
-  ![thonny options](images/thonny-options-interpreter.png?raw=true "thonny options")  
-  ![thonny flash options](images/thonny-flash-options.png?raw=true "thonny flash options")
+  ![thonny options](images/thonny-options-interpreter.png)
+  ![thonny flash options](images/thonny-flash-options.png)
 * Open this project in thonny.
 * copy config_example.py to config.py and insert your configuration there.
 * Click right on the folder main and choose "Upload to /"
-  ![upload main folder](images/upload_main.png?raw=true "upload main folder")
+  ![upload main folder](images/upload_main.png)
 * Upload config.py and boot.py the same way. (thonny asks you whether you want to overwrite boot.py. Accept with OK.)
 * Finally click on the red STOP-icon to reset the esp32.
 
@@ -44,20 +44,44 @@ Files for PCB (and possible to order): https://oshwlab.com/toremick/toshiba-ac-h
 * 1 x 0.25w 10K resistor
 * 1 x 0.25w 220R resistor
 * 1 x 100uF (11mmx5mm) Capacitor 
-* 1 x S05B-PASK-2 (header for connection cable)
+* 1 x S05B-PASK-2 (header for connection cable) or 1 x S5B-PH-K-S (header for PH 2.0 connection cable, see below)
 * and 2.54mm header pins and sockets
 
-### Extra part list for creating a extension cable
+### Connecting the esp to the air conditioner
+Unfortunately, Toshiba is using a JST PA connection to connect WIFI support. 
+The PA type is seldom used.
+I didn't find any crimped extension cables to buy.
+If you see some, please let me know, I add a link to them here.
+So there are 3 choices, how you can connect your esp:
+#### (A) Crimping your own JST PA extension cable
+
+Here is the extra part list for creating a extension cable:
 
 * JST, PA Female Crimp Connector Housing, 2mm Pitch, 5 Way, 1 Row (https://no.rs-online.com/web/p/wire-housings-plugs/1630360/)
 * JST, PA Female Connector Housing, 2mm Pitch, 5 Way, 1 Row (https://no.rs-online.com/web/p/wire-housings-plugs/4766798/)
 * JST, PA Female Crimp Connector Housing SPAL-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/1630376/)
 * JST, PA, PBV, PHD Female Crimp Terminal Contact 22AWG SPHD-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/6881381/)
 
-This can be skipped if you are solder the capacitor on the solder side laying flat. This way it will fit inside the AC unit
+#### (B) Connecting esp without extension cable
+
+toremick skipped crimping the connection cable. He soldered the capacitor on the solder side laying flat. This way it will fit inside the AC unit:
 
 ![PCB solder](images/pcb_solder.png?raw=true "PCB Solder")
 ![PCB cover](images/pcb_cover.png?raw=true "PCB Cover")
+
+#### (C) Using a PH 2.0 extension cable
+I was worried that the metal cover might shield the WIFI from the esp if I go for (B) and connect the esp directly.
+But instead of crimping my own JST PA extension cable, I bought 10cm JST PH 2.0 extension cables.
+![PH 2.0 extension](images/PH-20-extension.png)
+I solederd a S5B-PH-K-S on the pcb instead of the S05B-PASK-2.
+![pcb with S5B-PH-K-S](images/pcb-with-S5B-PH-K-S.png)
+![soldered esp32](images/soldered-esp32.png)
+The extension cable therfore fits the pcb, but the housing has to be clipped a bit.
+![clip PH 2.0 extension](images/clip-PH-20-extension.png)
+![clipped PH 2.0 extension](images/clipped-PH-20-extension.png)
+Afterwards it can be connected to the air conditioner.
+![connected PH 2.0 extension](images/connected-PH-20-extension.png)
+![connected esp32](images/connected-esp32.png)
 
 
 
