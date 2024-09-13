@@ -1,11 +1,12 @@
 # mqtt_as.py Asynchronous version of umqtt.robust
-# (C) Copyright Peter Hinch 2017-2020.
+# (C) Copyright Peter Hinch 2017-2021.
 # Released under the MIT licence.
 
 # Pyboard D support added
 # Various improvements contributed by Kevin Köck.
 
 import gc
+import machine
 import usocket as socket
 import ustruct as struct
 
@@ -25,7 +26,7 @@ import network
 gc.collect()
 from sys import platform
 
-VERSION = (0, 6, 0)
+VERSION = (0, 6, 1)
 
 # Default short delay for good SynCom throughput (avoid sleep(0) with SynCom).
 _DEFAULT_MS = const(20)
@@ -220,46 +221,51 @@ class MQTT_base:
                 raise
         await asyncio.sleep_ms(_DEFAULT_MS)
         self.dprint('Connecting to broker.')
-        if self._ssl:
-            import ssl
-            self._sock = ssl.wrap_socket(self._sock, **self._ssl_params)
-        premsg = bytearray(b"\x10\0\0\0\0\0")
-        msg = bytearray(b"\x04MQTT\x04\0\0\0")  # Protocol 3.1.1
+        try:
+            if self._ssl:
+                import ssl
+                self._sock = ussl.wrap_socket(self._sock, **self._ssl_params)
+            premsg = bytearray(b"\x10\0\0\0\0\0")
+            msg = bytearray(b"\x04MQTT\x04\0\0\0")  # Protocol 3.1.1
 
-        sz = 10 + 2 + len(self._client_id)
-        msg[6] = clean << 1
-        if self._user:
-            sz += 2 + len(self._user) + 2 + len(self._pswd)
-            msg[6] |= 0xC0
-        if self._keepalive:
-            msg[7] |= self._keepalive >> 8
-            msg[8] |= self._keepalive & 0x00FF
-        if self._lw_topic:
-            sz += 2 + len(self._lw_topic) + 2 + len(self._lw_msg)
-            msg[6] |= 0x4 | (self._lw_qos & 0x1) << 3 | (self._lw_qos & 0x2) << 3
-            msg[6] |= self._lw_retain << 5
+            sz = 10 + 2 + len(self._client_id)
+            msg[6] = clean << 1
+            if self._user:
+                sz += 2 + len(self._user) + 2 + len(self._pswd)
+                msg[6] |= 0xC0
+            if self._keepalive:
+                msg[7] |= self._keepalive >> 8
+                msg[8] |= self._keepalive & 0x00FF
+            if self._lw_topic:
+                sz += 2 + len(self._lw_topic) + 2 + len(self._lw_msg)
+                msg[6] |= 0x4 | (self._lw_qos & 0x1) << 3 | (self._lw_qos & 0x2) << 3
+                msg[6] |= self._lw_retain << 5
 
-        i = 1
-        while sz > 0x7f:
-            premsg[i] = (sz & 0x7f) | 0x80
-            sz >>= 7
-            i += 1
-        premsg[i] = sz
-        await self._as_write(premsg, i + 2)
-        await self._as_write(msg)
-        await self._send_str(self._client_id)
-        if self._lw_topic:
-            await self._send_str(self._lw_topic)
-            await self._send_str(self._lw_msg)
-        if self._user:
-            await self._send_str(self._user)
-            await self._send_str(self._pswd)
-        # Await CONNACK
-        # read causes ECONNABORTED if broker is out; triggers a reconnect.
-        resp = await self._as_read(4)
-        self.dprint('Connected to broker.')  # Got CONNACK
-        if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
-            raise OSError(-1)  # Bad CONNACK e.g. authentication fail.
+            i = 1
+            while sz > 0x7f:
+                premsg[i] = (sz & 0x7f) | 0x80
+                sz >>= 7
+                i += 1
+            premsg[i] = sz
+            await self._as_write(premsg, i + 2)
+            await self._as_write(msg)
+            await self._send_str(self._client_id)
+            if self._lw_topic:
+                await self._send_str(self._lw_topic)
+                await self._send_str(self._lw_msg)
+            if self._user:
+                await self._send_str(self._user)
+                await self._send_str(self._pswd)
+            # Await CONNACK
+            # read causes ECONNABORTED if broker is out; triggers a reconnect.
+            resp = await self._as_read(4)
+            self.dprint('Connected to broker.')  # Got CONNACK
+            if resp[3] != 0 or resp[0] != 0x20 or resp[1] != 0x02:
+                raise OSError(-1)  # Bad CONNACK e.g. authentication fail. -> changed to reboot device
+                #machine.reset()
+        except:
+            self.dprint('Connecting issue -> reboot initiated.')  # Connection issue
+            machine.reset()
 
     async def _ping(self):
         async with self.lock:
@@ -282,8 +288,10 @@ class MQTT_base:
             if len(res) == length:
                 return True  # DNS response size OK
         except OSError:  # Timeout on read: no connectivity.
+            machine.reset()
             return False
         finally:
+            machine.reset()
             s.close()
         return False
 
@@ -296,6 +304,7 @@ class MQTT_base:
         try:
             await self._ping()
         except OSError:
+            machine.reset()
             return False
         t = ticks_ms()
         while not self._timeout(t):
@@ -309,13 +318,18 @@ class MQTT_base:
             async with self.lock:
                 self._sock.write(b"\xe0\0")
         except OSError:
+            machine.reset()
             pass
         self._has_connected = False
-        self.close()
+        self._close()
 
-    def close(self):
+    def _close(self):
         if self._sock is not None:
             self._sock.close()
+
+    def close(self):  # API. See https://github.com/peterhinch/micropython-mqtt/issues/60
+        self._close()
+        self._sta_if.active(False)
 
     async def _await_pid(self, pid):
         t = ticks_ms()
@@ -447,6 +461,14 @@ class MQTT_base:
 
 # MQTTClient class. Handles issues relating to connectivity.
 
+async def _reconnect(self):
+    self._isconnected = False
+    await self.disconnect()
+    await asyncio.sleep(120)  # wait for 2 minutes
+    # reboot the device
+    import machine
+    machine.reset()
+
 class MQTTClient(MQTT_base):
     def __init__(self, config):
         super().__init__(config)
@@ -518,24 +540,23 @@ class MQTTClient(MQTT_base):
         try:
             await self._connect(clean)
         except Exception:
-            self.close()
+            self._close()
             raise
         self.rcv_pids.clear()
         # If we get here without error broker/LAN must be up.
         self._isconnected = True
         self._in_connect = False  # Low level code can now check connectivity.
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._wifi_handler(True))  # User handler.
+        asyncio.create_task(self._wifi_handler(True))  # User handler.
         if not self._has_connected:
             self._has_connected = True  # Use normal clean flag on reconnect.
-            loop.create_task(
+            asyncio.create_task(
                 self._keep_connected())  # Runs forever unless user issues .disconnect()
 
-        loop.create_task(self._handle_msg())  # Tasks quit on connection fail.
-        loop.create_task(self._keep_alive())
+        asyncio.create_task(self._handle_msg())  # Tasks quit on connection fail.
+        asyncio.create_task(self._keep_alive())
         if self.DEBUG:
-            loop.create_task(self._memory())
-        loop.create_task(self._connect_handler(self))  # User handler.
+            asyncio.create_task(self._memory())
+        asyncio.create_task(self._connect_handler(self))  # User handler.
 
     # Launched by .connect(). Runs until connectivity fails. Checks for and
     # handles incoming messages.
@@ -557,13 +578,14 @@ class MQTTClient(MQTT_base):
             pings_due = ticks_diff(ticks_ms(), self.last_rx) // self._ping_interval
             if pings_due >= 4:
                 self.dprint('Reconnect: broker fail.')
+                await self._reconnect()  # Call _reconnect() function instead of breaking out of the loop.
                 break
-            elif pings_due >= 1:
-                try:
-                    await self._ping()
-                except OSError:
-                    break
-            await asyncio.sleep(1)
+            await asyncio.sleep_ms(self._ping_interval)
+            try:
+                await self._ping()
+            except OSError:
+                await self._reconnect()  # Call _reconnect() function instead of breaking out of the loop.
+                break
         self._reconnect()  # Broker or WiFi fail.
 
     # DEBUG: show RAM messages.
@@ -587,9 +609,8 @@ class MQTTClient(MQTT_base):
     def _reconnect(self):  # Schedule a reconnection if not underway.
         if self._isconnected:
             self._isconnected = False
-            self.close()
-            loop = asyncio.get_event_loop()
-            loop.create_task(self._wifi_handler(False))  # User handler.
+            self._close()
+            asyncio.create_task(self._wifi_handler(False))  # User handler.
 
     # Await broker connection.
     async def _connection(self):
@@ -620,7 +641,7 @@ class MQTTClient(MQTT_base):
                 except OSError as e:
                     self.dprint('Error in reconnect.', e)
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
-                    self.close()  # Disconnect and try again.
+                    self._close()  # Disconnect and try again.
                     self._in_connect = False
                     self._isconnected = False
         self.dprint('Disconnected, exited _keep_connected')
