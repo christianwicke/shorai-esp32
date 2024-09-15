@@ -179,19 +179,19 @@ async def receiver(client):
                             await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
                         if(str(data[14]) == "179"):
                             setpoint = int(data[15])
-                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), qos=1)
+                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
                         if(str(data[14]) == "128"):
                             state = hpfuncs.inttostate[int(data[15])]
-                            await client.publish(config['maintopic'] + '/state/state', str(state), qos=1)
+                            await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
                         if(str(data[14]) == "160"):
                             fanmode = hpfuncs.inttofanmode[int(data[15])]
-                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), qos=1)
+                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
                         if(str(data[14]) == "163"):
                             swingmode = hpfuncs.inttoswing[int(data[15])]
-                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), qos=1)
+                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
                         if(str(data[14]) == "176"):
                             mode = hpfuncs.inttomode[int(data[15])]
-                            await client.publish(config['maintopic'] + '/mode/state', str(mode), qos=1)
+                            await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
                         if(str(data[14]) == "190"):
                             outdoortemp = int_to_signed(int(data[15]))
                             if (outdoortemp != 127):
@@ -203,19 +203,19 @@ async def receiver(client):
                             await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
                         if(str(data[12]) == "179"):
                             setpoint = int(data[13])
-                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), qos=1)
+                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
                         if(str(data[12]) == "128"):
                             state = hpfuncs.inttostate[int(data[13])]
-                            await client.publish(config['maintopic'] + '/state/state', str(state), qos=1)
+                            await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
                         if(str(data[12]) == "160"):
                             fanmode = hpfuncs.inttofanmode[int(data[13])]
-                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), qos=1)
+                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
                         if(str(data[12]) == "163"):
                             swingmode = hpfuncs.inttoswing[int(data[13])]
-                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), qos=1)
+                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
                         if(str(data[12]) == "176"):
                             mode = hpfuncs.inttomode[int(data[13])]
-                            await client.publish(config['maintopic'] + '/mode/state', str(mode), qos=1)
+                            await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
                         if(str(data[12]) == "190"):
                             outdoortemp = int_to_signed(int(data[13]))
                             if (outdoortemp != 127):
