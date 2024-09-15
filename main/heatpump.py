@@ -192,7 +192,9 @@ async def receiver(client):
                             await client.publish(config['maintopic'] + '/mode/state', str(mode), qos=1)
                         if(str(data[14]) == "190"):
                             outdoortemp = int_to_signed(int(data[15]))
-                            await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
+                            if (outdoortemp != 127):
+                                # 127 seems to be "temperature not available"
+                                await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
                     elif len(data) == 15:
                         if(str(data[12]) == "187"):
                             roomtemp = int_to_signed(int(data[13]))
@@ -214,7 +216,9 @@ async def receiver(client):
                             await client.publish(config['maintopic'] + '/mode/state', str(mode), qos=1)
                         if(str(data[12]) == "190"):
                             outdoortemp = int_to_signed(int(data[13]))
-                            await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
+                            if (outdoortemp != 127):
+                                # 127 seems to be "temperature not available"
+                                await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
      
     except Exception as e:
         hpfuncs.logprint(e)
