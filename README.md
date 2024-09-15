@@ -14,7 +14,7 @@ This works great for me, but is at your own risk!
 * Open this project in thonny.
 * copy config_example.py to config.py and insert your configuration there.
 * Click right on the folder main and choose "Upload to /"
-  ![upload main folder](images/upload_main.png)
+  ![upload main folder](images/upload-main.png)
 * Upload config.py and boot.py the same way. (thonny asks you whether you want to overwrite boot.py. Accept with OK.)
 * Finally click on the red STOP-icon to reset the esp32.
 
@@ -48,12 +48,33 @@ Files for PCB (and possible to order): https://oshwlab.com/toremick/toshiba-ac-h
 * and 2.54mm header pins and sockets
 
 ### Connecting the esp to the air conditioner
-Unfortunately, Toshiba is using a JST PA connection to connect WIFI support. 
+
+Unfortunately, Toshiba is using a JST PA connection to connect WIFI support.
 The PA type is seldom used.
-I didn't find any crimped extension cables to buy.
+The PH type is much more used and there are extension cables to buy in case your need one. 
+
+
+#### (A) Directly connecting to the WIFI adapter cable
+
+First check whether your cable is long enough to be led outside. 
+In this case just solder the S05B-PASK-2 on PCB and connect it to the cable.
+It should look like this:
+![pcb directly connected open.png](images/pcb-directly-connected-open.png)
+![pcb directly connected closed.png](images/pcb-directly-connected-closed.png)
+
+toremick has a different model and shared these pictures.
+He needed to soldere the capacitor on the solder side laying flat.
+This way it fit inside in his AC unit.
+
+![PCB solder](images/pcb_solder.png?raw=true "PCB Solder")
+![PCB cover](images/pcb_cover.png?raw=true "PCB Cover")
+
+#### (B) Using extension cable
+
+I didn't find any precrimped PA extension cables to buy.
 If you see some, please let me know, I add a link to them here.
-So there are 3 choices, how you can connect your esp:
-#### (A) Crimping your own JST PA extension cable
+So there are 2 choices, how you can connect your esp:
+##### (B1) Crimping your own JST PA extension cable
 
 Here is the extra part list for creating a extension cable:
 
@@ -62,14 +83,7 @@ Here is the extra part list for creating a extension cable:
 * JST, PA Female Crimp Connector Housing SPAL-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/1630376/)
 * JST, PA, PBV, PHD Female Crimp Terminal Contact 22AWG SPHD-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/6881381/)
 
-#### (B) Connecting esp without extension cable
-
-toremick skipped crimping the connection cable. He soldered the capacitor on the solder side laying flat. This way it will fit inside the AC unit:
-
-![PCB solder](images/pcb_solder.png?raw=true "PCB Solder")
-![PCB cover](images/pcb_cover.png?raw=true "PCB Cover")
-
-#### (C) Using a PH 2.0 extension cable
+##### (B2) Using a PH 2.0 extension cable
 I was worried that the metal cover might shield the WIFI from the esp if I go for (B) and connect the esp directly.
 But instead of crimping my own JST PA extension cable, I bought 10cm JST PH 2.0 extension cables.
 ![PH 2.0 extension](images/PH-20-extension.png)
@@ -82,10 +96,100 @@ The extension cable therfore fits the pcb, but the housing has to be clipped a b
 Afterwards it can be connected to the air conditioner.
 ![connected PH 2.0 extension](images/connected-PH-20-extension.png)
 ![connected esp32](images/connected-esp32.png)
+![pcb-with-extension-closed.png](images/pcb-with-extension-closed.png)
+
+### Open Hab configuration
+#### Thing configuration
+mqtt.thing
+```
+Bridge mqtt:broker:mymqtt [ host="xxx", port="xxxx", secure=false, username="xxxx", password="xxxx" ] {
+  Thing topic ac-livingroom "air conditioner livingroom" @ "livingroom" {
+    Channels:
+      Type number : temperature "temperature" [ stateTopic = "ac/livingroom/roomtemp", unit="°C" ]
+      Type number : targettemperature "target temperature" [ stateTopic = "ac/livingroom/setpoint/state", commandTopic="ac/livingroom/setpoint/set", unit="°C", step="1" ]
+      Type number : outdoortemperature "outdoor temperature" [ stateTopic = "ac/livingroom/outdoortemp", unit="°C" ]
+      Type switch : state "state" [ stateTopic = "ac/livingroom/state/state", commandTopic="ac/livingroom/state/set", on="ON", off="OFF" ]
+      Type string : mode "mode" [ stateTopic = "ac/livingroom/mode/state", commandTopic="ac/livingroom/mode/set", allowedStates="off,auto,cool,heat,dry,fan_only" ]
+      Type string : fan "fan" [ stateTopic = "ac/livingroom/fanmode/state", commandTopic="ac/livingroom/fanmode/set", allowedStates="quiet,lvl_1,lvl_2,lvl_3,lvl_4,lvl_5,auto" ]
+      Type switch : swing "fan swing" [ stateTopic = "ac/livingroom/swingmode/state", commandTopic="ac/livingroom/state/set", on="on", off="off" ]
+  }
+}
+```
+
+#### Item configuration
+I assume you want to add the items to existing groups livingroom and temperature.
+If not remove the "(livingroom, temperature)" from the configuration.
+
+ac.item
+```
+Number:Temperature AC_Livingroom_Temperature "AC room temperature [%d °C]" <temperature> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:temperature" }
+Number:Temperature AC_Livingroom_Targettemperature "AC target temperature AC [%d °C]" <temperature> (livingroom, temperature) ["Setpoint", "Temperature"] { channel="mqtt:topic:mymqtt:ac-livingroom:targettemperature" }
+Number:Temperature AC_Livingroom_Outdoortemperature "AC outdoor temperature [%d °C]" <temperature> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:outdoortemperature" }
+Switch AC_Livingroom_State "AC state " <switch> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:state" }
+String AC_Livingroom_Mode "AC mode" <heating> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:mode" }
+String AC_Livingroom_Fan "AC fan" <wind> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:fan" }
+Switch AC_Livingroom_fan_swing "AC fan swing " <flow> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:swing" }
+Switch AC_Livingroom_switch_by_power_surplus "switch AC whether power surplus" <heating> (livingroom, temperature)
+```
+#### Rule
+In case you have your own (photovoltaic) power plant and have it connected to OpenHab:
+Here is a rule that turn the ac on and off depending on whether you have power surplus.
+You need to define and set a switch item housePowerSurplus for this rule.
+
+ac.rules
+```
+var Timer tSwitchOn = null
+var Boolean switchingOn = false
+var Timer tSwitchOff = null
+var Boolean switchingOff = false
+
+rule "AC livingroom"
+when
+  Item housePowerSurplus received update or Item AC_Livingroom_State received update
+then
+  val Number surplus = (housePowerSurplus.state as QuantityType<Number>)
+  if (AC_Livingroom_switch_by_power_surplus.state == ON) {
+    if (AC_Livingroom_State.state == OFF ) {
+      if ( surplus >= 300 ) {
+        if (!switchingOn) {
+           switchingOn = true
+           tSwitchOn?.cancel()
+           tSwitchOn = createTimer(now.plusMinutes(1), [ |
+             AC_Livingroom_State.sendCommand(ON)
+             switchingOn = false
+           ])
+         }
+      } else {
+         tSwitchOn?.cancel()
+         switchingOn = false
+      }
+    }
+    if (AC_Livingroom_State.state == ON ) {
+      if ( surplus < 0 ) {
+        if (!switchingOff) {
+           switchingOff = true
+           tSwitchOff?.cancel()
+           tSwitchOff = createTimer(now.plusMinutes(1), [ |
+             AC_Livingroom_State.sendCommand(OFF)
+             switchingOff = false
+           ])
+         }
+      } else {
+         tSwitchOff?.cancel()
+         switchingOff = false
+      }
+    }
+  }
+end
+```
+If you have more than one AC just append a rule for each one in the same rules file.
+Since all rules share the same timer- and switching-variables, only one AC will be switched per minute.
+This way the rule only turns on that many AC as you have power surplus.
 
 
 
-### Home assistant Climate config part
+
+### Home assistant Climate config part (from toremick)
 
 **Important note:**
 If you have more than one device, please remember to change the *name*, *unique_id* and all the mqtt strings to have unique names. 
@@ -131,7 +235,6 @@ mqtt:
       precision: 1
     
 ```
-
 
 ### Add following to automations.yaml or where you have your automations
 (this will query the heatpump for all values so HA will have current state
