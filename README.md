@@ -88,7 +88,9 @@ Afterwards it can be connected to the air conditioner.
 ### Home assistant Climate config part
 
 **Important note:**
-If you have more than one device, please remember to change the *name*, *unique_id* and all the mqtt strings to have unique names. For each device replace the heatpump name with the unique 'maintopic' you have configured in the config.py of your ESP32 device. 
+If you have more than one device, please remember to change the *name*, *unique_id* and all the mqtt strings to have unique names. 
+For each device replace the 'ac/livingroom' name with the unique 'maintopic' you have configured in the config.py of your ESP32 device.
+Also give each device a separate hostname.
 
 ```
 mqtt:
@@ -114,17 +116,17 @@ mqtt:
         - "lvl_4"
         - "lvl_5"
         - "auto"
-      power_command_topic: "heatpump/state/set"
-      power_state_topic: "heatpump/state/state"
-      mode_command_topic: "heatpump/mode/set"
-      mode_state_topic: "heatpump/mode/state"
-      current_temperature_topic: "heatpump/roomtemp"
-      temperature_command_topic: "heatpump/setpoint/set"
-      temperature_state_topic: "heatpump/setpoint/state"
-      fan_mode_command_topic: "heatpump/fanmode/set"
-      fan_mode_state_topic: "heatpump/fanmode/state"
-      swing_mode_command_topic: "heatpump/swingmode/set"
-      swing_mode_state_topic: "heatpump/swingmode/state"
+      power_command_topic: "ac/livingroom/state/set"
+      power_state_topic: "ac/livingroom/state/state"
+      mode_command_topic: "ac/livingroom/mode/set"
+      mode_state_topic: "ac/livingroom/mode/state"
+      current_temperature_topic: "ac/livingroom/roomtemp"
+      temperature_command_topic: "ac/livingroom/setpoint/set"
+      temperature_state_topic: "ac/livingroom/setpoint/state"
+      fan_mode_command_topic: "ac/livingroom/fanmode/set"
+      fan_mode_state_topic: "ac/livingroom/fanmode/state"
+      swing_mode_command_topic: "ac/livingroom/swingmode/set"
+      swing_mode_state_topic: "ac/livingroom/swingmode/state"
       temp_step: 1
       precision: 1
     
@@ -144,7 +146,7 @@ for everything)
   action: 
   - service: mqtt.publish 
     data: 
-      topic: heatpump/doinit
+      topic: ac/livingroom/doinit
       payload: startup-ha
     
 ```
