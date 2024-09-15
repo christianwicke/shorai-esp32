@@ -143,12 +143,14 @@ async def conn_han(client):
         await client.subscribe(i,1)
         
 # first run to collect values and run watchdog
-async def firstrun(client):
+async def firstrun(client, version):
     firstrun = False
     await asyncio.sleep(10)
     if firstrun == False:
         await client.publish(config['maintopic'] + '/doinit', "firstrun")
         hpfuncs.logprint("init firstrun")
+        await client.publish(config['maintopic'] + '/version', version, retain=True)
+        hpfuncs.logprint("publish version")
         firstrun = True
     while True:
         await asyncio.sleep(60)
@@ -227,15 +229,15 @@ async def receiver(client):
 async def mainloop(client):
     await client.connect()
 
-config['subs_cb'] = sub_cb
-config['connect_coro'] = conn_han
-#config['server'] = SERVER
-MQTTClient.DEBUG = True
-client = MQTTClient(config)
+def start_loop(version):
+    config['subs_cb'] = sub_cb
+    config['connect_coro'] = conn_han
+    #config['server'] = SERVER
+    MQTTClient.DEBUG = True
+    client = MQTTClient(config)
 
-
-loop = asyncio.get_event_loop()
-loop.create_task(mainloop(client))
-loop.create_task(receiver(client))
-loop.create_task(firstrun(client))
-loop.run_forever()
+    loop = asyncio.get_event_loop()
+    loop.create_task(mainloop(client))
+    loop.create_task(receiver(client))
+    loop.create_task(firstrun(client, version))
+    loop.run_forever()

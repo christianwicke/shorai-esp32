@@ -32,7 +32,7 @@ class OTAUpdater:
     def check_for_update_to_install_during_next_reboot(self, ssid, password):
         OTAUpdater.using_network(ssid, password)
         #current_version = '1.1'
-        current_version = self.get_version(self.modulepath(self.main_dir))
+        current_version = self.get_current_version()
         latest_version = self.get_latest_version()
         #latest_version = '1.3'
 
@@ -80,7 +80,7 @@ class OTAUpdater:
             print('No pending update found')
 
     def download_updates_if_available(self):
-        current_version = self.get_version(self.modulepath(self.main_dir))
+        current_version = self.get_current_version()
         latest_version = self.get_latest_version()
 
         print('Checking version... ')
@@ -106,6 +106,9 @@ class OTAUpdater:
             else:
                 os.remove(directory + '/' + entry[0])
         os.rmdir(directory)
+
+    def get_current_version(self):
+        return  self.get_version(self.modulepath(self.main_dir))
 
     def get_version(self, directory, version_file_name='.version'):
         if version_file_name in os.listdir(directory):
