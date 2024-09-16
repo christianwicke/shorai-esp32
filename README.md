@@ -19,10 +19,10 @@ This works great for me, but is at your own risk!
 * Finally click on the red STOP-icon to reset the esp32.
 
 ### PCB Schematic
-![PCB Schematic](images/schematic.PNG?raw=true "PCB Schematic")
+![PCB Schematic](images/schematic.PNG "PCB Schematic")
 
 ### PCB Layout
-![PCB layout](images/pcb.PNG?raw=true "PCB layout")
+![PCB layout](images/pcb.PNG "PCB layout")
 U5 is a jumper, close the jumper to be powered from the heatpump. Remove jumper when powered from usb.
 
 R1: 220R  
@@ -134,7 +134,8 @@ Switch AC_Livingroom_switch_by_power_surplus "switch AC whether power surplus" <
 #### Rule
 In case you have your own (photovoltaic) power plant and have it connected to OpenHab:
 Here is a rule that turn the ac on and off depending on whether you have power surplus.
-You need to define and set a switch item housePowerSurplus for this rule.
+You need to define and set an Integer item housePowerSurplus for this rule, 
+which gives the current power surplus (if positive) in W.
 
 ac.rules
 ```
