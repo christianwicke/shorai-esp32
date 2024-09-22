@@ -39,7 +39,7 @@ class OTAUpdater:
         print('Checking version... ')
         print('\tCurrent version: ', current_version)
         print('\tLatest version: ', latest_version)
-        if latest_version != current_version:
+        if latest_version != current_version and latest_version != 'not-received':
             print('New version available, will download and install on next reboot')
             self.mkdir_f(self.modulepath('next'))
             with open(self.modulepath('next/.version_on_reboot'), 'w') as versionfile:
@@ -122,7 +122,7 @@ class OTAUpdater:
     def get_latest_version(self):
         import urequests
         string = urequests.get(self.github_repo + '/releases/latest', headers= header)
-        version = string.json()['tag_name']
+        version = string.json().get('tag_name', 'not-received')
         string.close()
         return version
     
