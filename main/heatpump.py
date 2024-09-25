@@ -34,28 +34,28 @@ def int_to_signed(intval):
         return intval
 
 #mqtt stuff
-def sub_cb(topic, msg, retained):
+def sub_cb(topic, msg, retained, properties=None):
     global power_state
     runwrite = True
     hpfuncs.logprint(str(topic) + " -- " + str(msg))
-################################################ 
-#setpoint
+    ################################################
+    #setpoint
     if topic == topic_sub_setp:
         try:
             values = hpfuncs.setpointVal(int(float(msg)))
         except Exception as e:
             hpfuncs.logprint(e)
             runwrite = False
-################################################ 
-#restart
+    ################################################
+    #restart
     if topic == topic_sub_restart:
         try:
             machine.reset()
         except Exception as e:
             hpfuncs.logprint(e)
-            runwrite = False            
-################################################        
-# state
+            runwrite = False
+        ################################################
+    # state
     elif topic == topic_sub_state:
         try:
             values = hpfuncs.stateControl(msg)
@@ -64,8 +64,8 @@ def sub_cb(topic, msg, retained):
         except Exception as e:
             hpfuncs.logprint(e)
             runwrite = False
-################################################        
-# swingstate
+    ################################################
+    # swingstate
     elif topic == topic_sub_swingmode:
         try:
             values = hpfuncs.swingControl(msg)
@@ -74,8 +74,8 @@ def sub_cb(topic, msg, retained):
         except Exception as e:
             hpfuncs.logprint(e)
             runwrite = False
-################################################        
-# mode
+    ################################################
+    # mode
     elif topic == topic_sub_mode:
         try:
             values = hpfuncs.modeControl(msg)
@@ -84,8 +84,8 @@ def sub_cb(topic, msg, retained):
         except Exception as e:
             hpfuncs.logprint(e)
             runwrite = False
-################################################
-# fanmode
+    ################################################
+    # fanmode
     elif topic == topic_sub_fanmode:
         try:
             values = hpfuncs.fanControl(msg)
@@ -94,8 +94,8 @@ def sub_cb(topic, msg, retained):
         except Exception as e:
             hpfuncs.logprint(e)
             runwrite = False
-################################################
-# do init
+    ################################################
+    # do init
     elif topic == topic_sub_doinit:
         myvals = hpfuncs.queryall()
         hpfuncs.logprint("initial read")
@@ -105,8 +105,8 @@ def sub_cb(topic, msg, retained):
         hpfuncs.logprint("initial read done")
         runwrite = False
 
-################################################
-# do watchdog
+    ################################################
+    # do watchdog
     elif topic == topic_sub_watchdog:
         myvals = hpfuncs.watchdog()
         for i in myvals:
@@ -114,7 +114,7 @@ def sub_cb(topic, msg, retained):
             sleep(0.2)
         hpfuncs.logprint("watchdog processed")
         runwrite = False
-################################################ 
+    ################################################
     if runwrite == True and values != False:
         #print(values)
         for i in values:
@@ -122,7 +122,7 @@ def sub_cb(topic, msg, retained):
             uart.write(bytearray(i))
             sleep(0.2)
 
-        
+
 def chunkifyarray(vals):
     val_length = len(vals)
     start = 0
@@ -133,7 +133,7 @@ def chunkifyarray(vals):
         chunk_size = lengde + 8
         chunk_end = start + int(vals[start+6]) + 8
         myresult.append(vals[start:chunk_end])
-        start = (start + chunk_size) 
+        start = (start + chunk_size)
         rest_size = rest_size - chunk_size
     return myresult
 
@@ -142,9 +142,9 @@ def chunkifyarray(vals):
 async def conn_han(client):
     for i in topics:
         await client.subscribe(i,1)
-        
+
 # first run to collect values and run watchdog
-async def firstrun(client, version):
+async def firstrun_and_watchdog(client, version):
     firstrun = False
     await asyncio.sleep(10)
     if firstrun == False:
@@ -160,7 +160,7 @@ async def firstrun(client, version):
 
 async def receiver(client):
     global power_state
-    
+
     hpfuncs.logprint("Starting receiver loop")
     sreader = asyncio.StreamReader(uart)
     try:
@@ -223,13 +223,16 @@ async def receiver(client):
                             if (outdoortemp != 127):
                                 # 127 seems to be "temperature not available"
                                 await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
-     
+
     except Exception as e:
         hpfuncs.logprint(e)
 
 
-async def mainloop(client):
+async def connect_to_client(client):
     await client.connect()
+
+async def main_loop(client, version):
+    await asyncio.gather(connect_to_client(client), receiver(client), firstrun_and_watchdog(client, version))
 
 def start_loop(version):
     config['subs_cb'] = sub_cb
@@ -239,11 +242,7 @@ def start_loop(version):
     client = MQTTClient(config)
 
     try:
-        loop = asyncio.get_event_loop()
-        loop.create_task(mainloop(client))
-        loop.create_task(receiver(client))
-        loop.create_task(firstrun(client, version))
-        loop.run_forever()
+        asyncio.run(main_loop(client, version))
     except Exception as e:
         hpfuncs.logprint("Unhandled Exception caught:")
         hpfuncs.logprint(e)
