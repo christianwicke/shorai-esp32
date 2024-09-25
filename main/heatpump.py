@@ -112,6 +112,7 @@ def sub_cb(topic, msg, retained):
         for i in myvals:
             uart.write(bytearray(i))
             sleep(0.2)
+        hpfuncs.logprint("watchdog processed")
         runwrite = False
 ################################################ 
     if runwrite == True and values != False:
@@ -160,6 +161,7 @@ async def firstrun(client, version):
 async def receiver(client):
     global power_state
     
+    hpfuncs.logprint("Starting receiver loop")
     sreader = asyncio.StreamReader(uart)
     try:
         while True:
@@ -236,8 +238,14 @@ def start_loop(version):
     MQTTClient.DEBUG = True
     client = MQTTClient(config)
 
-    loop = asyncio.get_event_loop()
-    loop.create_task(mainloop(client))
-    loop.create_task(receiver(client))
-    loop.create_task(firstrun(client, version))
-    loop.run_forever()
+    try:
+        loop = asyncio.get_event_loop()
+        loop.create_task(mainloop(client))
+        loop.create_task(receiver(client))
+        loop.create_task(firstrun(client, version))
+        loop.run_forever()
+    except Exception as e:
+        hpfuncs.logprint("Unhandled Exception caught:")
+        hpfuncs.logprint(e)
+        hpfuncs.logprint("resetting...")
+        machine.reset()

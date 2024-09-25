@@ -49,6 +49,7 @@ def swingControl(msg):
         getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,17)
         myvalues = (mylist, getlist)
     except Exception as e:
+        logprint(e)
         myvalues = False
     return myvalues
 
@@ -62,6 +63,7 @@ def modeControl(msg):
         getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,4)
         myvalues = (mylist, getlist)
     except Exception as e:
+        logprint(e)
         myvalues = False
     return myvalues
 
@@ -75,6 +77,7 @@ def fanControl(msg):
         getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,20)
         myvalues = (mylist, getlist)
     except Exception as e:
+        logprint(e)
         myvalues = False
     return myvalues
 
@@ -90,6 +93,7 @@ def stateControl(msg):
         getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,52)
         myvalues = (mylist, getlist)
     except Exception as e:
+        logprint(e)
         myvalues = False
     return myvalues
 
@@ -102,6 +106,7 @@ def setpointVal(msg):
         getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,1)
         myvalues = (mylist, getlist)
     except Exception as e:
+        logprint(e)
         myvalues = False
     return myvalues
 
@@ -129,6 +134,4 @@ def watchdog():
     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,187,249))
     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,190,246))
     return bootlist
-
-
-
+ 
