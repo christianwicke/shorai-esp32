@@ -234,6 +234,12 @@ async def connect_to_client(client):
 async def main_loop(client, version):
     await asyncio.gather(connect_to_client(client), receiver(client), firstrun_and_watchdog(client, version))
 
+def _handle_exception(loop, context):
+    hpfuncs.logprint("Unhandled loop exception caught:")
+    hpfuncs.logprint(context["exception"])
+    hpfuncs.logprint("resetting...")
+    machine.reset()
+
 def start_loop(version):
     config['subs_cb'] = sub_cb
     config['connect_coro'] = conn_han
@@ -242,9 +248,11 @@ def start_loop(version):
     client = MQTTClient(config)
 
     try:
+        asyncio.get_event_loop().set_exception_handler(_handle_exception)
         asyncio.run(main_loop(client, version))
     except Exception as e:
-        hpfuncs.logprint("Unhandled Exception caught:")
+        hpfuncs.logprint("Unhandled exception caught:")
         hpfuncs.logprint(e)
+    finally:
         hpfuncs.logprint("resetting...")
         machine.reset()
