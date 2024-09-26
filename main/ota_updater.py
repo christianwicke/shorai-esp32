@@ -136,7 +136,7 @@ class OTAUpdater:
                 self.download_file(download_url.replace('refs/tags/', ''), download_path)
             elif file['type'] == 'dir':
                 path = self.modulepath('next/' + file['path'].replace(self.main_dir + '/', ''))
-                os.mkdir(path)
+                self.mkdir_f(path)
                 self.download_all_files(root_url + '/' + file['name'], version)
 
         file_list.close()
