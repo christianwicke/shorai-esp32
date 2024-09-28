@@ -221,12 +221,5 @@ def start_loop(version):
     MQTTClient.DEBUG = True
     client = MQTTClient(config)
 
-    try:
-        asyncio.get_event_loop().set_exception_handler(_handle_exception)
-        asyncio.run(main_loop(client, version))
-    except Exception as e:
-        print("Unhandled exception caught:")
-        print(e)
-    finally:
-        hpfuncs.logprint("resetting...")
-        machine.reset()
+    asyncio.get_event_loop().set_exception_handler(_handle_exception)
+    asyncio.run(main_loop(client, version))
