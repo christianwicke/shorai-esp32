@@ -9,13 +9,6 @@ from config import config
 import time
 from time import sleep
 import machine
-power_state = 'OFF'
-
-
-
-#topic_prefix = "heatpump"
-#mqtt_server = '192.168.2.30'
-#client_id ='hpesp32-1'
 
 topic_sub_setp =  b"" + config['maintopic'] + "/setpoint/set"
 topic_sub_state =  b"" + config['maintopic'] + "/state/set"
@@ -35,7 +28,6 @@ def int_to_signed(intval):
 
 #mqtt stuff
 def sub_cb(topic, msg, retained, properties=None):
-    global power_state
     runwrite = True
     hpfuncs.logprint(str(topic) + " -- " + str(msg))
     ################################################
@@ -140,8 +132,10 @@ def chunkifyarray(vals):
 
 # subscribe to topics
 async def conn_han(client):
+    hpfuncs.logprint("subscribing to MQTT topics")
     for i in topics:
         await client.subscribe(i,1)
+    hpfuncs.logprint("subscribtion done")
 
 # first run to collect values and run watchdog
 async def firstrun_and_watchdog(client, version):
@@ -155,16 +149,42 @@ async def firstrun_and_watchdog(client, version):
         firstrun = True
     while True:
         await asyncio.sleep(60)
+        hpfuncs.logprint("watchdog publishes..")
         await client.publish(config['maintopic'] + '/watchdog', "get")
         hpfuncs.logprint("running watchdog..")
 
-async def receiver(client):
-    global power_state
+async def process_event(client, event, event_data):
+    if(event == "187"):
+        roomtemp = int_to_signed(event_data)
+        await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
+    if(event == "179"):
+        setpoint = event_data
+        await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
+    if(event == "128"):
+        state = hpfuncs.inttostate[event_data]
+        await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
+    if(event == "160"):
+        fanmode = hpfuncs.inttofanmode[event_data]
+        await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
+    if(event == "163"):
+        swingmode = hpfuncs.inttoswing[event_data]
+        await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
+    if(event == "176"):
+        mode = hpfuncs.inttomode[event_data]
+        await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
+    if(event == "190"):
+        outdoortemp = int_to_signed(event_data)
+        if (outdoortemp != 127):
+            # 127 seems to be "temperature not available"
+            await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
 
+
+async def receiver(client):
     hpfuncs.logprint("Starting receiver loop")
     sreader = asyncio.StreamReader(uart)
     try:
         while True:
+            hpfuncs.logprint("awaiting data from heatpump")
             serdata = await sreader.read(2048)
             if serdata is not None:
                 readable = list()
@@ -176,54 +196,9 @@ async def receiver(client):
                     hpfuncs.logprint(data)
                     await client.publish(config['maintopic'] + '/debug/fullstring', str(data))
                     if len(data) == 17:
-                        if(str(data[14]) == "187"):
-                            roomtemp = int_to_signed(int(data[15]))
-                            await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
-                        if(str(data[14]) == "179"):
-                            setpoint = int(data[15])
-                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
-                        if(str(data[14]) == "128"):
-                            state = hpfuncs.inttostate[int(data[15])]
-                            await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
-                        if(str(data[14]) == "160"):
-                            fanmode = hpfuncs.inttofanmode[int(data[15])]
-                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
-                        if(str(data[14]) == "163"):
-                            swingmode = hpfuncs.inttoswing[int(data[15])]
-                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
-                        if(str(data[14]) == "176"):
-                            mode = hpfuncs.inttomode[int(data[15])]
-                            await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
-                        if(str(data[14]) == "190"):
-                            outdoortemp = int_to_signed(int(data[15]))
-                            if (outdoortemp != 127):
-                                # 127 seems to be "temperature not available"
-                                await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
+                        await process_event(client, str(data[14]), int(data[15]))
                     elif len(data) == 15:
-                        if(str(data[12]) == "187"):
-                            roomtemp = int_to_signed(int(data[13]))
-                            await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
-                        if(str(data[12]) == "179"):
-                            setpoint = int(data[13])
-                            await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
-                        if(str(data[12]) == "128"):
-                            state = hpfuncs.inttostate[int(data[13])]
-                            await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
-                        if(str(data[12]) == "160"):
-                            fanmode = hpfuncs.inttofanmode[int(data[13])]
-                            await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
-                        if(str(data[12]) == "163"):
-                            swingmode = hpfuncs.inttoswing[int(data[13])]
-                            await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
-                        if(str(data[12]) == "176"):
-                            mode = hpfuncs.inttomode[int(data[13])]
-                            await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
-                        if(str(data[12]) == "190"):
-                            outdoortemp = int_to_signed(int(data[13]))
-                            if (outdoortemp != 127):
-                                # 127 seems to be "temperature not available"
-                                await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
-
+                        await process_event(client, str(data[12]), int(data[13]))
     except Exception as e:
         hpfuncs.logprint(e)
 
@@ -235,15 +210,14 @@ async def main_loop(client, version):
     await asyncio.gather(connect_to_client(client), receiver(client), firstrun_and_watchdog(client, version))
 
 def _handle_exception(loop, context):
-    hpfuncs.logprint("Unhandled loop exception caught:")
-    hpfuncs.logprint(context["exception"])
-    hpfuncs.logprint("resetting...")
+    print("Unhandled loop exception caught:")
+    print(context["exception"])
+    print("resetting...")
     machine.reset()
 
 def start_loop(version):
     config['subs_cb'] = sub_cb
     config['connect_coro'] = conn_han
-    #config['server'] = SERVER
     MQTTClient.DEBUG = True
     client = MQTTClient(config)
 
@@ -251,8 +225,8 @@ def start_loop(version):
         asyncio.get_event_loop().set_exception_handler(_handle_exception)
         asyncio.run(main_loop(client, version))
     except Exception as e:
-        hpfuncs.logprint("Unhandled exception caught:")
-        hpfuncs.logprint(e)
+        print("Unhandled exception caught:")
+        print(e)
     finally:
         hpfuncs.logprint("resetting...")
         machine.reset()
