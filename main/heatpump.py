@@ -221,5 +221,10 @@ def start_loop(version):
     MQTTClient.DEBUG = True
     client = MQTTClient(config)
 
-    asyncio.get_event_loop().set_exception_handler(_handle_exception)
-    asyncio.run(main_loop(client, version))
+    from main import aioprof
+    aioprof.enable()
+    try:
+        asyncio.get_event_loop().set_exception_handler(_handle_exception)
+        asyncio.run(main_loop(client, version))
+    finally:
+        aioprof.report()
