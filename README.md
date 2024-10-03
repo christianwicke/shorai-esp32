@@ -151,11 +151,11 @@ then
   val Number surplus = (housePowerSurplus.state as QuantityType<Number>)
   if (AC_Livingroom_switch_by_power_surplus.state == ON) {
     if (AC_Livingroom_State.state == OFF ) {
-      if ( surplus >= 300 ) {
+      if ( surplus >= 500 ) {
         if (!switchingOn) {
            switchingOn = true
            tSwitchOn?.cancel()
-           tSwitchOn = createTimer(now.plusMinutes(1), [ |
+           tSwitchOn = createTimer(now.plusMinutes(2), [ |
              AC_Livingroom_State.sendCommand(ON)
              switchingOn = false
            ])
@@ -170,7 +170,7 @@ then
         if (!switchingOff) {
            switchingOff = true
            tSwitchOff?.cancel()
-           tSwitchOff = createTimer(now.plusMinutes(1), [ |
+           tSwitchOff = createTimer(now.plusMinutes(2), [ |
              AC_Livingroom_State.sendCommand(OFF)
              switchingOff = false
            ])
