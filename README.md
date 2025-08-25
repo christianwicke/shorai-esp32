@@ -8,7 +8,8 @@ This works great for me, but is at your own risk!
 
 ## Software install
 * Install thonny (www.thonny.org) on your computer.
-* Flash MicroPython on your esp32 using these instructions: https://randomnerdtutorials.com/getting-started-thonny-micropython-python-ide-esp32-esp8266/ , section "Flashing MicroPython Firmware using Thonny IDE". (I used MicroPython v1.23.0.)
+* Flash MicroPython on your esp32 using these instructions: https://randomnerdtutorials.com/getting-started-thonny-micropython-python-ide-esp32-esp8266/ , section "Flashing MicroPython Firmware using Thonny IDE". 
+* (I used MicroPython v1.26.0.)
   ![thonny options](images/thonny-options-interpreter.png)
   ![thonny flash options](images/thonny-flash-options.png)
 * Open this project in thonny.
@@ -18,6 +19,8 @@ This works great for me, but is at your own risk!
 * Upload config.py and boot.py the same way. (thonny asks you whether you want to overwrite boot.py. Accept with OK.)
 * Finally click on the red STOP-icon to reset the esp32.
 
+## Soldering the PCB
+
 ### PCB Schematic
 ![PCB Schematic](images/schematic.PNG "PCB Schematic")
 
@@ -25,15 +28,15 @@ This works great for me, but is at your own risk!
 ![PCB layout](images/pcb.PNG "PCB layout")
 U5 is a jumper, close the jumper to be powered from the heatpump. Remove jumper when powered from usb.
 
-R1: 220R  
-R2: 470R  
-R3: 10K  
-R7,R8,R9,R10: 1K  
-U1,U2: 817A (Optocouplers)  
-C1: 100uF  
-U5: When connected with a Jumper, the pcb is powered from the AC (can be soldered)  
+R1: 220R 
+R2: 470R 
+R3: 10K
+R7,R8,R9,R10: 1K
+U1,U2: 817A (Optocouplers)
+C1: 100uF
+U5: When connected with a Jumper, the pcb is powered from the AC (can be soldered)
 
-Files for PCB (and possible to order): https://oshwlab.com/toremick/toshiba-ac-heatpump-mqtt  
+Files for PCB (and possible to order): https://oshwlab.com/toremick/toshiba-ac-heatpump-mqtt
 
 ### Parts list
 
@@ -47,14 +50,29 @@ Files for PCB (and possible to order): https://oshwlab.com/toremick/toshiba-ac-h
 * 1 x S05B-PASK-2 (header for connection cable) or 1 x S5B-PH-K-S (header for PH 2.0 connection cable, see below)
 * and 2.54mm header pins and sockets
 
-### Connecting the esp to the air conditioner
+###  Expect errors
+Maybe you are a more skilled solderer than I am. 
+But I had some errors. 
+I soldered 9 PCBs to get 6 working. 
+One of the broken ones often has a `Guru Meditation Error: Core 1 panic'ed (IllegalInstruction)` right after boot and hangs in a reboot loop.
+Another one works in principle. 
+I can send messages to the AC. 
+But I don't read anything from the serial line.
+No room temperature and no status.
+A third one reads nearly constantly extra '0'-Messages from the serial line. 
+This also prevents receiving messages from the AC.
+
+My recommendation to you is, just expect failures and build extra. 
+It is faster to build another one than trying to fix a broken one. 
+
+## Connecting the esp to the air conditioner
 
 Unfortunately, Toshiba is using a JST PA connection to connect WIFI support.
 The PA type is seldom used.
 The PH type is much more used and there are extension cables to buy in case your need one. 
 
 
-#### (A) Directly connecting to the WIFI adapter cable
+### (A) Directly connecting to the WIFI adapter cable
 
 First check whether your cable is long enough to be led outside. 
 In this case just solder the S05B-PASK-2 on PCB and connect it to the cable.
@@ -69,12 +87,12 @@ This way it fit inside in his AC unit.
 ![PCB solder](images/pcb_solder.png?raw=true "PCB Solder")
 ![PCB cover](images/pcb_cover.png?raw=true "PCB Cover")
 
-#### (B) Using extension cable
+### (B) Using extension cable
 
 I didn't find any precrimped PA extension cables to buy.
 If you see some, please let me know, I add a link to them here.
 So there are 2 choices, how you can connect your esp:
-##### (B1) Crimping your own JST PA extension cable
+#### (B1) Crimping your own JST PA extension cable
 
 Here is the extra part list for creating a extension cable:
 
@@ -83,7 +101,7 @@ Here is the extra part list for creating a extension cable:
 * JST, PA Female Crimp Connector Housing SPAL-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/1630376/)
 * JST, PA, PBV, PHD Female Crimp Terminal Contact 22AWG SPHD-001T-P0.5 (https://no.rs-online.com/web/p/crimp-contacts/6881381/)
 
-##### (B2) Using a PH 2.0 extension cable
+#### (B2) Using a PH 2.0 extension cable
 I was worried that the metal cover might shield the WIFI from the esp if I go for (B) and connect the esp directly.
 But instead of crimping my own JST PA extension cable, I bought 10cm JST PH 2.0 extension cables.
 ![PH 2.0 extension](images/PH-20-extension.png)
@@ -96,10 +114,16 @@ The extension cable therfore fits the pcb, but the housing has to be clipped a b
 Afterwards it can be connected to the air conditioner.
 ![connected PH 2.0 extension](images/connected-PH-20-extension.png)
 ![connected esp32](images/connected-esp32.png)
+
+### Sticking the PCB to the air conditioner
+
+I used self-adhesive clay and stuck one peace to each upper corner of the PCB on the side with the pins
+This way the reset is still accessible.
+![pcb-with-self-adhesive-clay](images/pcb-with-self-adhesive-clay.png)
 ![pcb-with-extension-closed.png](images/pcb-with-extension-closed.png)
 
-### Open Hab configuration
-#### Thing configuration
+## Open Hab configuration
+### Thing configuration
 mqtt.thing
 ```
 Bridge mqtt:broker:mymqtt [ host="xxx", port="xxxx", secure=false, username="xxxx", password="xxxx" ] {
@@ -116,7 +140,7 @@ Bridge mqtt:broker:mymqtt [ host="xxx", port="xxxx", secure=false, username="xxx
 }
 ```
 
-#### Item configuration
+### Item configuration
 I assume you want to add the items to existing groups livingroom and temperature.
 If not remove the "(livingroom, temperature)" from the configuration.
 
@@ -131,7 +155,7 @@ String AC_Livingroom_Fan "AC fan" <wind> (livingroom, temperature) { channel="mq
 Switch AC_Livingroom_fan_swing "AC fan swing " <flow> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:swing" }
 Switch AC_Livingroom_switch_by_power_surplus "switch AC whether power surplus" <heating> (livingroom, temperature)
 ```
-#### Rule
+### Rule
 In case you have your own (photovoltaic) power plant and have it connected to OpenHab:
 Here is a rule that turn the ac on and off depending on whether you have power surplus.
 You need to define and set an Integer item housePowerSurplus for this rule, 
@@ -190,7 +214,7 @@ This way the rule only turns on that many AC as you have power surplus.
 
 
 
-### Home assistant Climate config part (from toremick)
+## Home assistant Climate config part (from toremick)
 
 **Important note:**
 If you have more than one device, please remember to change the *name*, *unique_id* and all the mqtt strings to have unique names. 
