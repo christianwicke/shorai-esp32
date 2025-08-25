@@ -6,10 +6,25 @@ try:
 except Exception as e:
     print(e)
 
+OP_CODE_SWING = 163
+OP_CODE_MODE = 176
+OP_CODE_FAN = 160
+OP_CODE_STATE = 128
+OP_CODE_TARGET_TEMP = 179
+OP_CODE_ROOM_TEMP = 187
+OP_CODE_OUTDOOR_TEMP = 190
+OP_CODE_POWER_MODE = 247
+OP_CODE_UNKNOWN_1 = 135
+OP_CODE_UNKNOWN_2 = 203
+OP_CODE_UNKNOWN_3 = 136
+OP_CODE_UNKNOWN_4 = 134
+OP_CODE_UNKNOWN_5 = 144
+OP_CODE_UNKNOWN_6 = 148
+
 modetoint = {"auto":65, "cool":66, "heat":67, "dry":68, "fan_only":69}
 inttomode = dict(map(reversed, modetoint.items()))
 
-fanmodetoint = {"quiet":49, "lvl_1": 50, "lvl_2":51, "lvl_3":52, "lvl_4":53, "lvl_5":54, "auto":65} 
+fanmodetoint = {"quiet":49, "lvl_1": 50, "lvl_2":51, "lvl_3":52, "lvl_4":53, "lvl_5":54, "auto":65}
 inttofanmode = dict(map(reversed, fanmodetoint.items()))
 
 swingtoint = {"off": 49, "on":65}
@@ -17,6 +32,9 @@ inttoswing = dict(map(reversed, swingtoint.items()))
 
 statetoint = {"ON":48, "OFF":49}
 inttostate = dict(map(reversed, statetoint.items()))
+
+powermodetoint = {"off":0, "hi_power":1, "silent":2, "eco":3}
+inttopowermode = dict(map(reversed, powermodetoint.items()))
 
 def checksum(msg,function):
     numb = 434 - msg - function
@@ -26,6 +44,15 @@ def checksum(msg,function):
         retval = numb
     return retval
 
+def calc_message_checksum(data):
+    # somehow byte 0 (always 2) is not included in the checksum.
+    payload_slice = data[1:len(data)]
+    return (-sum(payload_slice)) & 0xFF
+
+def build_send_message(operation, *args):
+    message = (2,0,3,16,0,0,6 + len(args),1,48,1,0,1 + len(args), operation) + args
+    result = message + tuple([calc_message_checksum(message)])
+    return result
 
 def logprint(msg):
     rtc = RTC()
@@ -36,102 +63,83 @@ def logprint(msg):
     result = str(timestamp) + " -> " + str(msg)
     print(result)
  
-
+def control(op_code, value):
+    return (build_send_message(op_code, value), build_send_message(op_code))
 
 def swingControl(msg):
-    function_code = 163
-    message = msg.decode("utf-8")
-    
     try:
-        function_value = swingtoint[message]
-        control_code = checksum(function_value,function_code)
-        mylist = (2,0,3,16,0,0,7,1,48,1,0,2,function_code,function_value,control_code)
-        getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,17)
-        myvalues = (mylist, getlist)
+        function_value = swingtoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_SWING, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
     return myvalues
 
 def modeControl(msg):
-    function_code = 176
-    message = msg.decode("utf-8")
     try:
-        function_value = modetoint[message]
-        control_code = checksum(function_value,function_code)
-        mylist = (2,0,3,16,0,0,7,1,48,1,0,2,function_code,function_value,control_code)
-        getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,4)
-        myvalues = (mylist, getlist)
+        function_value = modetoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_MODE, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
     return myvalues
 
 def fanControl(msg):
-    function_code = 160
-    message = msg.decode("utf-8")
     try:
-        function_value = fanmodetoint[message]
-        control_code = checksum(function_value,function_code)
-        mylist = (2,0,3,16,0,0,7,1,48,1,0,2,function_code,function_value,control_code)
-        getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,20)
-        myvalues = (mylist, getlist)
+        function_value = fanmodetoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_FAN, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
     return myvalues
 
-
-
 def stateControl(msg):
-    function_code = 128
-    message = msg.decode("utf-8")
     try:
-        function_value = statetoint[message]
-        control_code = checksum(function_value,function_code)
-        mylist = (2,0,3,16,0,0,7,1,48,1,0,2,function_code,function_value,control_code)
-        getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,52)
-        myvalues = (mylist, getlist)
+        function_value = statetoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_STATE, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
     return myvalues
 
 def setpointVal(msg):
-    function_code = 179
     try:
         function_value = int(msg)
-        control_code = checksum(function_value,function_code)
-        mylist = (2,0,3,16,0,0,7,1,48,1,0,2,function_code,function_value,control_code)
-        getlist = (2,0,3,16,0,0,6,1,48,1,0,1,function_code,1)
-        myvalues = (mylist, getlist)
+        myvalues = control(OP_CODE_TARGET_TEMP, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
     return myvalues
 
-     
+def powermodeControl(msg):
+    try:
+        function_value = powermodetoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_POWER_MODE, function_value)
+    except Exception as e:
+        logprint(e)
+        myvalues = False
+    return myvalues
+
 def queryall():
      bootlist = []
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,128,52))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,176,4))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,179,1))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,160,20))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,135,45))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,163,17))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,187,249))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,190,246))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,203,233))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,136,44))
-     #bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,134,46))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,144,36))
-     bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,148,32))
+     bootlist.append(build_send_message(OP_CODE_STATE))
+     bootlist.append(build_send_message(OP_CODE_MODE))
+     bootlist.append(build_send_message(OP_CODE_TARGET_TEMP))
+     bootlist.append(build_send_message(OP_CODE_FAN))
+     bootlist.append(build_send_message(OP_CODE_UNKNOWN_1))
+     bootlist.append(build_send_message(OP_CODE_SWING))
+     bootlist.append(build_send_message(OP_CODE_ROOM_TEMP))
+     bootlist.append(build_send_message(OP_CODE_OUTDOOR_TEMP))
+     bootlist.append(build_send_message(OP_CODE_POWER_MODE))
+     bootlist.append(build_send_message(OP_CODE_UNKNOWN_2))
+     bootlist.append(build_send_message(OP_CODE_UNKNOWN_3))
+     #bootlist.append(build_send_message(OP_CODE_UNKNOWN_4))
+     bootlist.append(build_send_message(OP_CODE_UNKNOWN_5))
+     bootlist.append(build_send_message(OP_CODE_UNKNOWN_6))
      return bootlist    
-
 
 def watchdog():
     bootlist = []
-    bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,187,249))
-    bootlist.append((2,0,3,16,0,0,6,1,48,1,0,1,190,246))
+    bootlist.append(build_send_message(OP_CODE_ROOM_TEMP))
+    bootlist.append(build_send_message(OP_CODE_OUTDOOR_TEMP))
     return bootlist
- 

@@ -755,7 +755,7 @@ class MQTTClient(MQTT_base):
                     if s.status() < network.STAT_IDLE:
                         # pause as workaround to avoid repeating STAT_WRONG_PASSWORD on connect.
                         # see https://github.com/peterhinch/micropython-mqtt/issues/132 for details
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(5)
                         break
                 elif PYBOARD:  # No symbolic constants in network
                     if not 1 <= s.status() <= 2:
