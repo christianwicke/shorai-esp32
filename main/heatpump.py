@@ -4,21 +4,23 @@ global uart
 uart = UART(1, 9600)
 uart.init(9600,bits = 8,parity = 0,stop = 1,rx = 32,tx = 33,timeout = 10, timeout_char=50)
 import uasyncio as asyncio
-from main.mqtt_as import MQTTClient
-from config import config
+from main.mqtt_as import MQTTClient, config
+from config import user_config
 import time
 from time import sleep
 import machine
 
-topic_sub_setp =  b"" + config['maintopic'] + "/setpoint/set"
-topic_sub_state =  b"" + config['maintopic'] + "/state/set"
-topic_sub_fanmode =  b"" + config['maintopic'] + "/fanmode/set"
-topic_sub_swingmode =  b"" + config['maintopic'] + "/swingmode/set"
-topic_sub_mode =   b"" + config['maintopic'] + "/mode/set"
-topic_sub_powermode =  b"" + config['maintopic'] + "/powermode/set"
-topic_sub_doinit =  b"" + config['maintopic'] + "/doinit"
-topic_sub_restart =  b"" + config['maintopic'] + "/restart"
-topic_sub_watchdog =  b"" + config['maintopic'] + "/watchdog"
+maintopic = user_config['maintopic']
+
+topic_sub_setp =  b"" + maintopic + "/setpoint/set"
+topic_sub_state =  b"" + maintopic + "/state/set"
+topic_sub_fanmode =  b"" + maintopic + "/fanmode/set"
+topic_sub_swingmode =  b"" + maintopic + "/swingmode/set"
+topic_sub_mode =   b"" + maintopic + "/mode/set"
+topic_sub_powermode =  b"" + maintopic + "/powermode/set"
+topic_sub_doinit =  b"" + maintopic + "/doinit"
+topic_sub_restart =  b"" + maintopic + "/restart"
+topic_sub_watchdog =  b"" + maintopic + "/watchdog"
 topics = [topic_sub_setp, topic_sub_state, topic_sub_doinit, topic_sub_fanmode, topic_sub_mode, topic_sub_swingmode, topic_sub_powermode, topic_sub_restart, topic_sub_watchdog]
 
 def int_to_signed(intval):
@@ -151,44 +153,44 @@ async def firstrun_and_watchdog(client, version):
     firstrun = False
     await asyncio.sleep(10)
     if firstrun == False:
-        await client.publish(config['maintopic'] + '/doinit', "firstrun")
+        await client.publish(maintopic + '/doinit', "firstrun")
         hpfuncs.logprint("init firstrun")
-        await client.publish(config['maintopic'] + '/version', version, retain=True)
+        await client.publish(maintopic + '/version', version, retain=True)
         hpfuncs.logprint("publish version")
         firstrun = True
     while True:
         await asyncio.sleep(60)
         hpfuncs.logprint("watchdog publishes..")
-        await client.publish(config['maintopic'] + '/watchdog', "get")
+        await client.publish(maintopic + '/watchdog', "get")
         hpfuncs.logprint("running watchdog..")
 
 async def process_event(client, event, event_data):
     if(event == hpfuncs.OP_CODE_ROOM_TEMP):
         roomtemp = int_to_signed(event_data)
-        await client.publish(config['maintopic'] + '/roomtemp', str(roomtemp), qos=1)
+        await client.publish(maintopic + '/roomtemp', str(roomtemp), qos=1)
     if(event == hpfuncs.OP_CODE_TARGET_TEMP):
         setpoint = event_data
-        await client.publish(config['maintopic'] + '/setpoint/state', str(setpoint), retain=True, qos=1)
+        await client.publish(maintopic + '/setpoint/state', str(setpoint), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_STATE):
         state = hpfuncs.inttostate[event_data]
-        await client.publish(config['maintopic'] + '/state/state', str(state), retain=True, qos=1)
+        await client.publish(maintopic + '/state/state', str(state), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_FAN):
         fanmode = hpfuncs.inttofanmode[event_data]
-        await client.publish(config['maintopic'] + '/fanmode/state', str(fanmode), retain=True, qos=1)
+        await client.publish(maintopic + '/fanmode/state', str(fanmode), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_SWING):
         swingmode = hpfuncs.inttoswing[event_data]
-        await client.publish(config['maintopic'] + '/swingmode/state', str(swingmode), retain=True, qos=1)
+        await client.publish(maintopic + '/swingmode/state', str(swingmode), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_MODE):
         mode = hpfuncs.inttomode[event_data]
-        await client.publish(config['maintopic'] + '/mode/state', str(mode), retain=True, qos=1)
+        await client.publish(maintopic + '/mode/state', str(mode), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_POWER_MODE):
         powermode = hpfuncs.inttopowermode[event_data]
-        await client.publish(config['maintopic'] + '/powermode/state', str(powermode), retain=True, qos=1)
+        await client.publish(maintopic + '/powermode/state', str(powermode), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_OUTDOOR_TEMP):
         outdoortemp = int_to_signed(event_data)
         if (outdoortemp != 127):
             # 127 seems to be "temperature not available"
-            await client.publish(config['maintopic'] + '/outdoortemp', str(outdoortemp), qos=1)
+            await client.publish(maintopic + '/outdoortemp', str(outdoortemp), qos=1)
 
 async def receiver(client):
     hpfuncs.logprint("Starting receiver loop")
@@ -202,11 +204,11 @@ async def receiver(client):
                 for i in serdata:
                     readable.append(str(int(i)))
                 hpfuncs.logprint("length of data: " + str(len(readable)))
-                await client.publish(config['maintopic'] + '/debug/fullline', str(readable))
+                await client.publish(maintopic + '/debug/fullline', str(readable))
                 chunks = chunkifyarray(readable)
                 for data in chunks:
                     hpfuncs.logprint(data)
-                    await client.publish(config['maintopic'] + '/debug/fullstring', str(data))
+                    await client.publish(maintopic + '/debug/fullstring', str(data))
                     if len(data) == 17:
                         await process_event(client, int(data[14]), int(data[15]))
                     elif len(data) == 15:

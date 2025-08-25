@@ -126,20 +126,32 @@ class OTAUpdater:
         return version
     
 
-    def download_all_files(self, root_url, version):
+    def collect_all_files(self, root_url, version):
         file_list = mrequests.get(root_url + '?ref=refs/tags/' + version,  headers=header)
         # {b"Accept": b"application/json", b"User-Agent": b"MicroPython OTAUpdater"}
+        alldirs = []
+        allfiles = []
         for file in file_list.json():
             if file['type'] == 'file':
                 download_url = file['download_url']
                 download_path = self.modulepath('next/' + file['path'].replace(self.main_dir + '/', ''))
-                self.download_file(download_url.replace('refs/tags/', ''), download_path)
+                allfiles.append((download_url, download_path))
             elif file['type'] == 'dir':
                 path = self.modulepath('next/' + file['path'].replace(self.main_dir + '/', ''))
-                self.mkdir_f(path)
-                self.download_all_files(root_url + '/' + file['name'], version)
-
+                alldirs.append((path, file['name']))
         file_list.close()
+        gc.collect()
+        for d in alldirs:
+            self.mkdir_f(d[0])
+            allfiles = allfiles + self.collect_all_files(root_url + '/' + d[1], version)
+        return allfiles
+
+    def download_all_files(self, root_url, version):
+        self.download_file("https://raw.githubusercontent.com/christianwicke/shorai-esp32/v0.0.8/main/heatpump.py", "next/heatpump.py")
+        allfiles = self.collect_all_files(root_url, version)
+        gc.collect()
+        for file in allfiles:
+            self.download_file(file[0].replace('refs/tags/', ''), file[1])
 
     def download_file(self, url, path):
         print('\tDownloading: ', path)
