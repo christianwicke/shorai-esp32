@@ -13,7 +13,7 @@ OP_CODE_STATE = 128
 OP_CODE_TARGET_TEMP = 179
 OP_CODE_ROOM_TEMP = 187
 OP_CODE_OUTDOOR_TEMP = 190
-OP_CODE_POWER_MODE = 247
+OP_CODE_FUNCTION_MODE = 247
 OP_CODE_UNKNOWN_1 = 135
 OP_CODE_UNKNOWN_2 = 203
 OP_CODE_UNKNOWN_3 = 136
@@ -33,8 +33,8 @@ inttoswing = dict(map(reversed, swingtoint.items()))
 statetoint = {"ON":48, "OFF":49}
 inttostate = dict(map(reversed, statetoint.items()))
 
-powermodetoint = {"off":0, "hi_power":1, "silent":2, "eco":3}
-inttopowermode = dict(map(reversed, powermodetoint.items()))
+functionmodetoint = {"normal":0, "hi_power":1, "silent":2, "eco":3}
+inttofunctionmode = dict(map(reversed, functionmodetoint.items()))
 
 def checksum(msg,function):
     numb = 434 - msg - function
@@ -111,10 +111,10 @@ def setpointVal(msg):
         myvalues = False
     return myvalues
 
-def powermodeControl(msg):
+def functionmodeControl(msg):
     try:
-        function_value = powermodetoint[msg.decode("utf-8")]
-        myvalues = control(OP_CODE_POWER_MODE, function_value)
+        function_value = functionmodetoint[msg.decode("utf-8")]
+        myvalues = control(OP_CODE_FUNCTION_MODE, function_value)
     except Exception as e:
         logprint(e)
         myvalues = False
@@ -130,7 +130,7 @@ def queryall():
      bootlist.append(build_send_message(OP_CODE_SWING))
      bootlist.append(build_send_message(OP_CODE_ROOM_TEMP))
      bootlist.append(build_send_message(OP_CODE_OUTDOOR_TEMP))
-     bootlist.append(build_send_message(OP_CODE_POWER_MODE))
+     bootlist.append(build_send_message(OP_CODE_FUNCTION_MODE))
      bootlist.append(build_send_message(OP_CODE_UNKNOWN_2))
      bootlist.append(build_send_message(OP_CODE_UNKNOWN_3))
      #bootlist.append(build_send_message(OP_CODE_UNKNOWN_4))

@@ -17,11 +17,11 @@ topic_sub_state =  b"" + maintopic + "/state/set"
 topic_sub_fanmode =  b"" + maintopic + "/fanmode/set"
 topic_sub_swingmode =  b"" + maintopic + "/swingmode/set"
 topic_sub_mode =   b"" + maintopic + "/mode/set"
-topic_sub_powermode =  b"" + maintopic + "/powermode/set"
+topic_sub_functionmode =  b"" + maintopic + "/functionmode/set"
 topic_sub_doinit =  b"" + maintopic + "/doinit"
 topic_sub_restart =  b"" + maintopic + "/restart"
 topic_sub_watchdog =  b"" + maintopic + "/watchdog"
-topics = [topic_sub_setp, topic_sub_state, topic_sub_doinit, topic_sub_fanmode, topic_sub_mode, topic_sub_swingmode, topic_sub_powermode, topic_sub_restart, topic_sub_watchdog]
+topics = [topic_sub_setp, topic_sub_state, topic_sub_doinit, topic_sub_fanmode, topic_sub_mode, topic_sub_swingmode, topic_sub_functionmode, topic_sub_restart, topic_sub_watchdog]
 
 def int_to_signed(intval):
     if intval > 127:
@@ -91,9 +91,9 @@ def sub_cb(topic, msg, retained, properties=None):
             runwrite = False
     ################################################
     # fanmode
-    elif topic == topic_sub_powermode:
+    elif topic == topic_sub_functionmode:
         try:
-            values = hpfuncs.powermodeControl(msg)
+            values = hpfuncs.functionmodeControl(msg)
             if values == False:
                 runwrite = False
         except Exception as e:
@@ -183,9 +183,9 @@ async def process_event(client, event, event_data):
     if(event == hpfuncs.OP_CODE_MODE):
         mode = hpfuncs.inttomode[event_data]
         await client.publish(maintopic + '/mode/state', str(mode), retain=True, qos=1)
-    if(event == hpfuncs.OP_CODE_POWER_MODE):
-        powermode = hpfuncs.inttopowermode[event_data]
-        await client.publish(maintopic + '/powermode/state', str(powermode), retain=True, qos=1)
+    if(event == hpfuncs.OP_CODE_FUNCTION_MODE):
+        functionmode = hpfuncs.inttofunctionmode[event_data]
+        await client.publish(maintopic + '/functionmode/state', str(functionmode), retain=True, qos=1)
     if(event == hpfuncs.OP_CODE_OUTDOOR_TEMP):
         outdoortemp = int_to_signed(event_data)
         if (outdoortemp != 127):
