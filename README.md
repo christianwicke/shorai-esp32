@@ -134,6 +134,7 @@ Bridge mqtt:broker:mymqtt [ host="xxx", port="xxxx", secure=false, username="xxx
       Type number : outdoortemperature "outdoor temperature" [ stateTopic = "ac/livingroom/outdoortemp", unit="°C" ]
       Type switch : state "state" [ stateTopic = "ac/livingroom/state/state", commandTopic="ac/livingroom/state/set", on="ON", off="OFF" ]
       Type string : mode "mode" [ stateTopic = "ac/livingroom/mode/state", commandTopic="ac/livingroom/mode/set", allowedStates="off,auto,cool,heat,dry,fan_only" ]
+      Type string : function "function" [ stateTopic = "ac/livingroom/functionmode/state", commandTopic="ac/livingroom/functionmode/set", allowedStates="normal,hi_power,silent,eco" ]
       Type string : fan "fan" [ stateTopic = "ac/livingroom/fanmode/state", commandTopic="ac/livingroom/fanmode/set", allowedStates="quiet,lvl_1,lvl_2,lvl_3,lvl_4,lvl_5,auto" ]
       Type switch : swing "fan swing" [ stateTopic = "ac/livingroom/swingmode/state", commandTopic="ac/livingroom/state/set", on="on", off="off" ]
   }
@@ -151,6 +152,7 @@ Number:Temperature AC_Livingroom_Targettemperature "AC target temperature AC [%d
 Number:Temperature AC_Livingroom_Outdoortemperature "AC outdoor temperature [%d °C]" <temperature> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:outdoortemperature" }
 Switch AC_Livingroom_State "AC state " <switch> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:state" }
 String AC_Livingroom_Mode "AC mode" <heating> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:mode" }
+String AC_Livingroom_Function "AC function" <heating> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:function" }
 String AC_Livingroom_Fan "AC fan" <wind> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:fan" }
 Switch AC_Livingroom_fan_swing "AC fan swing " <flow> (livingroom, temperature) { channel="mqtt:topic:mymqtt:ac-livingroom:swing" }
 Switch AC_Livingroom_switch_by_power_surplus "switch AC whether power surplus" <heating> (livingroom, temperature)
@@ -211,10 +213,8 @@ If you have more than one AC just append a rule for each one in the same rules f
 Since all rules share the same timer- and switching-variables, only one AC will be switched per minute.
 This way the rule only turns on that many AC as you have power surplus.
 
-
-
-
 ## Home assistant Climate config part (from toremick)
+*Remark: functionmode is still missing in this config*
 
 **Important note:**
 If you have more than one device, please remember to change the *name*, *unique_id* and all the mqtt strings to have unique names. 
@@ -278,5 +278,3 @@ for everything)
       payload: startup-ha
     
 ```
-
-
